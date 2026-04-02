@@ -1,0 +1,69 @@
+class Job(object):
+    def __init__(self,
+                 idx: int,
+                 arrival: float = 0.0,
+                 runtime: float = 0.0,
+                 deadline: float = 0.0,
+                 resources: dict = None,
+                 cost: float = 0.0,
+                 nodes: int = 1):
+        self.idx = idx
+        # Original arrival time for job.
+        self.arrival = arrival
+        self.runtime = runtime
+        self.deadline = deadline
+        self.resources = resources
+        if 'GPUs' in resources:
+            self.num_gpus = resources['GPUs']
+        else:
+            self.resources['GPUs'] = 0
+            self.num_gpus = 0
+
+        if 'CPUs' in resources:
+            self.num_cpus = resources['CPUs']
+        else:
+            self.resources['CPUs'] = 0
+            self.num_cpus = 0
+
+        self.cost = cost
+        self.nodes = nodes
+
+        # State of the Job
+        self.state = None
+        # Starting time of the job on the local cluster, if none, the job was ran on the cloud.
+        self.start = None
+
+        # Keeps track of which GPU(s) the job ran on.
+        self.allocated_gpus = {}
+
+        # For backfill scheduling, job immediately executed after Job idx `block_job_idx` completes.
+        self.block_job_idx = None
+
+        # This field keeps track of the total starved space a job has incurred due to preemption.
+        # This is to prevent chain preemptions.
+        self.starved_space = 0
+
+
+        # This field keeps track if the job has been on the cloud before and was preemepted from running on cloud.
+        self.preempt_cloud = False
+        # New arrival time for job.
+        self.new_arrival = -1
+
+        # DAG and Multimodal Attributes
+        self.dependencies = []  # List of parent job IDs
+        self.dependency_parent = None  # Single parent ID (for simple pipelines)
+        self.data_size = 0.0  # Data transfer size in GB
+        self.job_type = None  # e.g., 'Encoder', 'Generator'
+        self.target_cloud = None  # e.g., 'Private', 'Public'
+
+    def __eq__(self, other):
+        return self.idx == other.idx
+
+    def __hash__(self):
+        return hash(str(self.idx))
+
+    def set_deadline(self, deadline):
+        self.deadline = deadline
+
+    def __repr__(self):
+        return f'Job(idx={self.idx}, resources={self.resources}, arr={self.arrival}, run = {self.runtime}, deadline={self.deadline}, start={self.start})\n'
